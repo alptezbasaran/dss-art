@@ -186,7 +186,18 @@
       alive = 0;
     }
 
-    canvas.addEventListener("pointerdown", handlePointer);
+    let isPointerDown = false;
+
+    canvas.addEventListener("pointerdown", e => {
+      isPointerDown = true;
+      canvas.setPointerCapture(e.pointerId);
+      handlePointer(e);
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (isPointerDown) handlePointer(e);
+    });
+    canvas.addEventListener("pointerup",     e => { isPointerDown = false; });
+    canvas.addEventListener("pointercancel", e => { isPointerDown = false; });
     resetBtn.addEventListener("click", resetAll);
     lastStepTime = performance.now();
     requestAnimationFrame(tick);

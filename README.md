@@ -29,7 +29,7 @@ docker run --rm -p 8000:8000 cellular-art-web
 ```
 
 Then open `http://localhost:8000` and:
-- click/tap anywhere to seed the automaton from that point
+- click/tap anywhere to seed the automaton from that point, or click and drag to draw a continuous trail
 - use the **Reset** button in the bottom‑right corner to clear the canvas
 
 ### GitHub Pages
