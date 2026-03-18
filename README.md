@@ -1,5 +1,7 @@
 ## Cellular Automata Quilt
 
+For a full explanation of how the math and code produce the visuals, see [HOW_IT_WORKS.md](HOW_IT_WORKS.md).
+
 Interactive, full‑screen cellular automata art that you can:
 - render to animated GIFs with Python/`uv`
 - explore live in the browser (click‑to‑seed, reset), either via Docker or GitHub Pages.
@@ -25,10 +27,10 @@ docker build -t cellular-art-web .
 Run the full‑screen interactive app:
 
 ```bash
-docker run --rm -p 8000:8000 cellular-art-web
+docker run --rm -p 8080:80 --name cellular-art-static cellular-art-web
 ```
 
-Then open `http://localhost:8000` and:
+Then open `http://localhost:8080` and:
 - click/tap anywhere to seed the automaton from that point, or click and drag to draw a continuous trail
 - use the **Reset** button in the bottom‑right corner to clear the canvas
 

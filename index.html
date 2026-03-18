@@ -8,8 +8,11 @@
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
     #stage { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+
+    /* --- UI buttons --- */
     #ui {
       position: fixed; bottom: 20px; right: 20px; z-index: 10;
+      display: flex; flex-direction: column; gap: 8px; align-items: stretch;
     }
     button {
       background: rgba(255,255,255,0.08); color: #eee;
@@ -19,12 +22,278 @@
       transition: background 0.15s;
     }
     button:hover { background: rgba(255,255,255,0.16); }
+
+    /* --- Color menu --- */
+    #colorMenu {
+      position: fixed; bottom: 128px; right: 20px; z-index: 20;
+      background: rgba(14,14,14,0.97);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      overflow: hidden;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      display: none;
+    }
+    #colorMenu button {
+      display: block; width: 100%; text-align: left;
+      border: none; border-radius: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 9px 16px; font-size: 13px;
+      white-space: nowrap;
+    }
+    #colorMenu button:last-child { border-bottom: none; }
+    #colorMenu button.active { background: rgba(255,255,255,0.16); color: #fff; }
+
+    /* --- Modal --- */
+    #modal {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(0,0,0,0.88);
+      overflow-y: auto;
+      display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 40px 20px;
+    }
+    #modal.open { display: flex; }
+    #modalContent {
+      max-width: 760px; width: 100%;
+      background: #0f0f0f; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 48px 48px 56px;
+      position: relative;
+      color: #ccc; font-family: Georgia, 'Times New Roman', serif;
+      font-size: 16px; line-height: 1.75;
+    }
+    #modalClose {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 18px; padding: 4px 10px; line-height: 1;
+    }
+    #modalContent h1 { color: #fff; font-size: 22px; margin-top: 0; margin-bottom: 6px; }
+    #modalContent h2 { color: #eee; font-size: 17px; margin-top: 36px; margin-bottom: 8px; border-top: 1px solid #222; padding-top: 28px; }
+    #modalContent h3 { color: #ddd; font-size: 15px; margin-top: 24px; margin-bottom: 6px; }
+    #modalContent hr { border: none; border-top: 1px solid #1e1e1e; margin: 28px 0; }
+    #modalContent strong { color: #eee; }
+    #modalContent ol { padding-left: 1.5em; margin: 12px 0; }
+    #modalContent li { margin-bottom: 4px; }
+    #modalContent p { margin: 12px 0; }
+    #modalContent svg { max-width: 100%; height: auto; display: block; margin: 16px 0; }
+    #modalContent code { font-family: monospace; font-size: 14px; color: #aaa; background: #1a1a1a; padding: 1px 5px; border-radius: 3px; }
   </style>
 </head>
 <body>
   <canvas id="stage" aria-label="Cellular art canvas"></canvas>
+
+  <!-- Color palette menu -->
+  <div id="colorMenu">
+    <button data-mode="original" class="active">Original</button>
+    <button data-mode="grayscale">Grayscale</button>
+    <button data-mode="redscale">Red</button>
+    <button data-mode="ncstate">NC State</button>
+    <button data-mode="rainbow">Rainbow</button>
+    <button id="moreToggle" type="button">More ▾</button>
+    <div id="morePanel" style="display:none">
+      <button data-mode="fire">Fire</button>
+      <button data-mode="ice">Ice</button>
+      <button data-mode="ember">Ember</button>
+      <button data-mode="aurora">Aurora</button>
+      <button data-mode="sunset">Sunset</button>
+      <button data-mode="ocean">Ocean</button>
+      <button data-mode="diverging">Diverging</button>
+      <button data-mode="viridis">Viridis</button>
+      <button data-mode="inferno">Inferno</button>
+      <button data-mode="rainbow-slow">Rainbow Slow</button>
+    </div>
+  </div>
+
+  <!-- UI buttons -->
   <div id="ui">
     <button id="resetBtn" type="button">Reset</button>
+    <button id="howBtn" type="button">How it works</button>
+    <button id="colorBtn" type="button">Color ▾</button>
+  </div>
+
+  <!-- How it works modal -->
+  <div id="modal" role="dialog" aria-modal="true" aria-label="How it works">
+    <div id="modalContent">
+      <button id="modalClose" type="button" aria-label="Close">×</button>
+
+      <h1>How It Works</h1>
+      <p>This is not a painting. It is not a photograph or a generative texture brushed on by hand. Every pixel you see is the output of math — rules applied to a grid, numbers fed through functions, color computed rather than chosen. The art is in the rules. Everything else follows.</p>
+
+      <h2>The Game of Life — life from four rules</h2>
+      <p>The foundation is Conway's Game of Life, a cellular automaton invented in 1970. The canvas is a grid of cells, each either alive (1) or dead (0). At every tick, the entire grid advances one generation simultaneously according to four rules:</p>
+      <ol>
+        <li>A live cell with <strong>fewer than 2</strong> live neighbors dies (underpopulation).</li>
+        <li>A live cell with <strong>2 or 3</strong> live neighbors survives.</li>
+        <li>A live cell with <strong>more than 3</strong> live neighbors dies (overcrowding).</li>
+        <li>A dead cell with <strong>exactly 3</strong> live neighbors is born.</li>
+      </ol>
+      <p>That's it. Four sentences, and from them emerge gliders, oscillators, self-replicating patterns — behaviors that nobody explicitly programmed.</p>
+      <p>The grid wraps at the edges (toroidal topology), so a glider that drifts off the right side reappears on the left. There are no walls; the space folds back on itself.</p>
+      <p><strong>Seeding</strong> is how you start. Clicking or dragging doesn't place a single cell — it plants a probabilistic cluster, a radial burst where cells near the center are more likely to be born and cells at the edge trail off. The probability of birth at distance <em>d</em> from the click is approximately P(d) ≈ 0.56 − 0.01 d². You're not drawing; you're igniting.</p>
+
+      <h2>Color as data — how math paints each cell</h2>
+      <p>The Game of Life produces a binary grid: alive or dead. The color you see is a separate computation layered on top. Three quantities accumulate for every cell, and together they determine its pixel color.</p>
+
+      <h3>Trail and age — cellular memory</h3>
+      <p>Each cell carries two running values:</p>
+      <p><strong>trail</strong> — a leaky integrator that charges when the cell is alive and decays when it's dead. At steady state (always alive), trail converges to about 19.2. When the cell dies, trail decays by ×0.93 each frame — half-life of about 10 frames (~550 ms). Here is what that decay looks like starting from steady state:</p>
+      <svg xmlns="http://www.w3.org/2000/svg" width="700" height="180" style="background:#111;border-radius:6px">
+        <line x1="48" y1="144.0" x2="684" y2="144.0" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="110.7" x2="684" y2="110.7" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="77.3" x2="684" y2="77.3" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="44.0" x2="684" y2="44.0" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="16.0" x2="684" y2="16.0" stroke="#333" stroke-width="1"/>
+        <line x1="48.0" y1="16" x2="48.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="209.0" y1="16" x2="209.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="370.0" y1="16" x2="370.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="531.0" y1="16" x2="531.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="684.0" y1="16" x2="684.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="16" x2="48" y2="144" stroke="#555" stroke-width="1.5"/>
+        <line x1="48" y1="144" x2="684" y2="144" stroke="#555" stroke-width="1.5"/>
+        <text x="42" y="148.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">0</text>
+        <text x="42" y="114.7" text-anchor="end" font-family="monospace" font-size="11" fill="#888">5</text>
+        <text x="42" y="81.3" text-anchor="end" font-family="monospace" font-size="11" fill="#888">10</text>
+        <text x="42" y="48.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">15</text>
+        <text x="42" y="20.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">19.2</text>
+        <text x="48.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">0</text>
+        <text x="209.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">20</text>
+        <text x="370.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">40</text>
+        <text x="531.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">60</text>
+        <text x="684.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">79</text>
+        <text x="366.0" y="178" text-anchor="middle" font-family="monospace" font-size="11" fill="#666">frames after cell dies</text>
+        <path d="M 48.0,16.0 L 56.1,23.7 L 64.1,30.9 L 72.2,37.7 L 80.2,44.1 L 88.3,50.1 L 96.3,55.7 L 104.4,61.0 L 112.4,66.0 L 120.5,70.7 L 128.5,75.1 L 136.6,79.2 L 144.6,83.1 L 152.7,86.7 L 160.7,90.2 L 168.8,93.4 L 176.8,96.4 L 184.9,99.3 L 192.9,102.0 L 201.0,104.5 L 209.0,106.9 L 217.1,109.1 L 225.1,111.2 L 233.2,113.2 L 241.2,115.0 L 249.3,116.7 L 257.3,118.4 L 265.4,119.9 L 273.4,121.4 L 281.5,122.7 L 289.5,124.0 L 297.6,125.2 L 305.6,126.3 L 313.7,127.4 L 321.7,128.4 L 329.8,129.3 L 337.8,130.2 L 345.9,131.0 L 353.9,131.8 L 362.0,132.5 L 370.0,133.2 L 378.1,133.9 L 386.1,134.5 L 394.2,135.1 L 402.2,135.6 L 410.3,136.1 L 418.3,136.6 L 426.4,137.0 L 434.4,137.4 L 442.5,137.8 L 450.5,138.2 L 458.6,138.5 L 466.6,138.9 L 474.7,139.2 L 482.7,139.5 L 490.8,139.7 L 498.8,140.0 L 506.9,140.2 L 514.9,140.5 L 523.0,140.7 L 531.0,140.9 L 539.1,141.1 L 547.1,141.2 L 555.2,141.4 L 563.2,141.6 L 571.3,141.7 L 579.3,141.8 L 587.4,142.0 L 595.4,142.1 L 603.5,142.2 L 611.5,142.3 L 619.6,142.4 L 627.6,142.5 L 635.7,142.6 L 643.7,142.7 L 651.8,142.8 L 659.8,142.8 L 667.9,142.9 L 675.9,143.0 L 684.0,143.0" stroke="#ff7755" stroke-width="2" fill="none" opacity="0.9"/>
+      </svg>
+
+      <p><strong>age</strong> — counts consecutive frames alive, capped at 50, decaying at 84%/frame when dead.</p>
+      <p>Together they form a composite activity signal: <code>t = 0.72·trail + 0.35·age</code> ∈ [0, ~31.5]. This is the single number that drives color. A freshly born cell has t ≈ 0; a cell alive continuously approaches t ≈ 31.5.</p>
+
+      <h3>Glow via tanh — a nonlinear brightness curve</h3>
+      <p>Raw trail values would produce either flat brightness or harsh edges. Instead, brightness is compressed through a hyperbolic tangent: <code>glow = clamp(0.2 + 0.8·tanh(0.9·trail))</code> ∈ [0.20, 1.0]. tanh is S-shaped: it rises steeply near zero, then saturates. Cells snap to near-full brightness within a couple of frames of birth, then fade in a long smooth tail after death — nothing blinks on and off like a switch.</p>
+      <svg xmlns="http://www.w3.org/2000/svg" width="700" height="180" style="background:#111;border-radius:6px">
+        <line x1="48" y1="144.0" x2="684" y2="144.0" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="118.4" x2="684" y2="118.4" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="80.0" x2="684" y2="80.0" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="41.6" x2="684" y2="41.6" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="16.0" x2="684" y2="16.0" stroke="#333" stroke-width="1"/>
+        <line x1="48.0" y1="16" x2="48.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="207.0" y1="16" x2="207.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="366.0" y1="16" x2="366.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="525.0" y1="16" x2="525.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="684.0" y1="16" x2="684.0" y2="144" stroke="#333" stroke-width="1"/>
+        <line x1="48" y1="16" x2="48" y2="144" stroke="#555" stroke-width="1.5"/>
+        <line x1="48" y1="144" x2="684" y2="144" stroke="#555" stroke-width="1.5"/>
+        <text x="42" y="148.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">0</text>
+        <text x="42" y="122.4" text-anchor="end" font-family="monospace" font-size="11" fill="#888">0.2</text>
+        <text x="42" y="84.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">0.5</text>
+        <text x="42" y="45.6" text-anchor="end" font-family="monospace" font-size="11" fill="#888">0.8</text>
+        <text x="42" y="20.0" text-anchor="end" font-family="monospace" font-size="11" fill="#888">1</text>
+        <text x="48.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">0</text>
+        <text x="207.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">5</text>
+        <text x="366.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">10</text>
+        <text x="525.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">15</text>
+        <text x="684.0" y="158" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">20</text>
+        <text x="366.0" y="178" text-anchor="middle" font-family="monospace" font-size="11" fill="#666">trail</text>
+        <path d="M 48.0,118.4 L 51.2,109.2 L 54.4,100.2 L 57.5,91.4 L 60.7,83.1 L 63.9,75.2 L 67.1,67.9 L 70.3,61.3 L 73.4,55.2 L 76.6,49.8 L 79.8,45.1 L 83.0,40.8 L 86.2,37.2 L 89.3,34.0 L 92.5,31.3 L 95.7,28.9 L 98.9,26.9 L 102.1,25.2 L 105.2,23.7 L 108.4,22.5 L 111.6,21.4 L 114.8,20.6 L 118.0,19.8 L 121.1,19.2 L 124.3,18.7 L 127.5,18.3 L 130.7,17.9 L 133.9,17.6 L 137.0,17.3 L 140.2,17.1 L 143.4,16.9 L 146.6,16.8 L 149.8,16.6 L 152.9,16.5 L 156.1,16.4 L 159.3,16.4 L 162.5,16.3 L 165.7,16.3 L 168.8,16.2 L 172.0,16.2 L 175.2,16.2 L 178.4,16.1 L 181.6,16.1 L 184.7,16.1 L 187.9,16.1 L 191.1,16.1 L 194.3,16.1 L 197.5,16.0 L 200.6,16.0 L 203.8,16.0 L 207.0,16.0 L 684.0,16.0" stroke="#ffcc44" stroke-width="2" fill="none" opacity="0.9"/>
+      </svg>
+
+      <h3>Hue via sine triplet — color as rotation</h3>
+      <p>The three color channels are not looked up from a palette. They are computed as phase-shifted sine waves of the activity signal t, with offsets 0, 2.2, and 4.4 radians (approximately 120° apart). As t grows, the channels sweep through the hue wheel at slightly different rates (1.15, 1.05, 1.25), so the color rotates and never simply repeats. A slowly incrementing phase term drifts the entire spectrum over time, completing one full global shift in roughly 1–2 minutes.</p>
+      <p>The full colormap — scanning t = 0 → 79 at full brightness:</p>
+      <svg xmlns="http://www.w3.org/2000/svg" width="700" height="60">
+        <defs>
+          <linearGradient id="cmap" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0.0%" stop-color="rgb(127,230,6)"/>
+          <stop offset="1.3%" stop-color="rgb(243,113,52)"/>
+          <stop offset="2.5%" stop-color="rgb(222,10,201)"/>
+          <stop offset="3.8%" stop-color="rgb(88,25,249)"/>
+          <stop offset="5.1%" stop-color="rgb(0,142,130)"/>
+          <stop offset="6.3%" stop-color="rgb(62,244,7)"/>
+          <stop offset="7.6%" stop-color="rgb(201,229,48)"/>
+          <stop offset="8.9%" stop-color="rgb(252,111,197)"/>
+          <stop offset="10.1%" stop-color="rgb(155,9,250)"/>
+          <stop offset="11.4%" stop-color="rgb(25,26,134)"/>
+          <stop offset="12.7%" stop-color="rgb(15,144,9)"/>
+          <stop offset="13.9%" stop-color="rgb(138,245,45)"/>
+          <stop offset="15.2%" stop-color="rgb(247,228,194)"/>
+          <stop offset="16.5%" stop-color="rgb(215,109,251)"/>
+          <stop offset="17.7%" stop-color="rgb(78,9,139)"/>
+          <stop offset="19.0%" stop-color="rgb(0,27,10)"/>
+          <stop offset="20.3%" stop-color="rgb(72,146,42)"/>
+          <stop offset="21.5%" stop-color="rgb(209,246,190)"/>
+          <stop offset="22.8%" stop-color="rgb(250,226,252)"/>
+          <stop offset="24.1%" stop-color="rgb(145,107,143)"/>
+          <stop offset="25.3%" stop-color="rgb(19,8,12)"/>
+          <stop offset="26.6%" stop-color="rgb(21,29,39)"/>
+          <stop offset="27.8%" stop-color="rgb(148,148,186)"/>
+          <stop offset="29.1%" stop-color="rgb(250,247,253)"/>
+          <stop offset="30.4%" stop-color="rgb(207,225,147)"/>
+          <stop offset="31.6%" stop-color="rgb(69,105,14)"/>
+          <stop offset="32.9%" stop-color="rgb(0,7,36)"/>
+          <stop offset="34.2%" stop-color="rgb(81,30,183)"/>
+          <stop offset="35.4%" stop-color="rgb(217,150,253)"/>
+          <stop offset="36.7%" stop-color="rgb(246,247,151)"/>
+          <stop offset="38.0%" stop-color="rgb(134,223,16)"/>
+          <stop offset="39.2%" stop-color="rgb(14,103,33)"/>
+          <stop offset="40.5%" stop-color="rgb(27,6,179)"/>
+          <stop offset="41.8%" stop-color="rgb(159,31,254)"/>
+          <stop offset="43.0%" stop-color="rgb(253,152,155)"/>
+          <stop offset="44.3%" stop-color="rgb(198,248,18)"/>
+          <stop offset="45.6%" stop-color="rgb(59,222,30)"/>
+          <stop offset="46.8%" stop-color="rgb(1,101,175)"/>
+          <stop offset="48.1%" stop-color="rgb(91,6,254)"/>
+          <stop offset="49.4%" stop-color="rgb(224,33,159)"/>
+          <stop offset="50.6%" stop-color="rgb(242,155,20)"/>
+          <stop offset="51.9%" stop-color="rgb(124,249,27)"/>
+          <stop offset="53.2%" stop-color="rgb(9,221,171)"/>
+          <stop offset="54.4%" stop-color="rgb(34,98,254)"/>
+          <stop offset="55.7%" stop-color="rgb(169,5,163)"/>
+          <stop offset="57.0%" stop-color="rgb(254,34,23)"/>
+          <stop offset="58.2%" stop-color="rgb(189,157,25)"/>
+          <stop offset="59.5%" stop-color="rgb(51,249,167)"/>
+          <stop offset="60.8%" stop-color="rgb(3,219,254)"/>
+          <stop offset="62.0%" stop-color="rgb(102,96,168)"/>
+          <stop offset="63.3%" stop-color="rgb(231,4,25)"/>
+          <stop offset="64.6%" stop-color="rgb(237,36,22)"/>
+          <stop offset="65.8%" stop-color="rgb(113,159,163)"/>
+          <stop offset="67.1%" stop-color="rgb(6,250,254)"/>
+          <stop offset="68.4%" stop-color="rgb(42,218,172)"/>
+          <stop offset="69.6%" stop-color="rgb(179,94,28)"/>
+          <stop offset="70.9%" stop-color="rgb(254,4,20)"/>
+          <stop offset="72.2%" stop-color="rgb(179,37,159)"/>
+          <stop offset="73.4%" stop-color="rgb(42,161,254)"/>
+          <stop offset="74.7%" stop-color="rgb(5,250,175)"/>
+          <stop offset="75.9%" stop-color="rgb(112,216,30)"/>
+          <stop offset="77.2%" stop-color="rgb(237,92,18)"/>
+          <stop offset="78.5%" stop-color="rgb(231,3,155)"/>
+          <stop offset="79.7%" stop-color="rgb(102,39,254)"/>
+          <stop offset="81.0%" stop-color="rgb(3,163,179)"/>
+          <stop offset="82.3%" stop-color="rgb(50,251,33)"/>
+          <stop offset="83.5%" stop-color="rgb(188,215,15)"/>
+          <stop offset="84.8%" stop-color="rgb(254,90,151)"/>
+          <stop offset="86.1%" stop-color="rgb(169,3,253)"/>
+          <stop offset="87.3%" stop-color="rgb(35,40,183)"/>
+          <stop offset="88.6%" stop-color="rgb(9,165,36)"/>
+          <stop offset="89.9%" stop-color="rgb(123,251,13)"/>
+          <stop offset="91.1%" stop-color="rgb(242,213,146)"/>
+          <stop offset="92.4%" stop-color="rgb(225,88,253)"/>
+          <stop offset="93.7%" stop-color="rgb(92,2,187)"/>
+          <stop offset="94.9%" stop-color="rgb(1,42,39)"/>
+          <stop offset="96.2%" stop-color="rgb(59,167,12)"/>
+          <stop offset="97.5%" stop-color="rgb(197,252,142)"/>
+          <stop offset="98.7%" stop-color="rgb(253,211,252)"/>
+          <stop offset="100.0%" stop-color="rgb(159,86,191)"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="700" height="40" fill="url(#cmap)" rx="4"/>
+        <text x="0" y="56" font-family="monospace" font-size="11" fill="#888">t = 0</text>
+        <text x="350" y="56" font-family="monospace" font-size="11" fill="#888" text-anchor="middle">t = 40</text>
+        <text x="700" y="56" font-family="monospace" font-size="11" fill="#888" text-anchor="end">t = 79</text>
+      </svg>
+
+      <h3>Ambient wave — the living background</h3>
+      <p>Dead cells aren't black. Three overlapping sine waves ripple across the canvas continuously, producing the slow shimmer visible in the background. The background luminance range [0.04, 0.20] maps to roughly 10–50 out of 255 — dim but intentionally visible in a dark room. Three waves at different spatial frequencies and drift speeds ensure the pattern never locks into a static grid.</p>
+
+      <h2>What this means for art</h2>
+      <p>The artist defines the rules. The math writes the image.</p>
+      <p>There is no hand-placed color, no brush, no filter applied after the fact. What you see is the direct visual encoding of a simulation — activity, memory, and time translated into light. Complexity, beauty, and surprise emerge from a handful of arithmetic operations repeated thousands of times per second. The medium is computation.</p>
+    </div>
   </div>
 
   <script>
@@ -34,16 +303,43 @@
 
     const canvas = document.getElementById("stage");
     const resetBtn = document.getElementById("resetBtn");
+    const howBtn = document.getElementById("howBtn");
+    const colorBtn = document.getElementById("colorBtn");
+    const colorMenu = document.getElementById("colorMenu");
+    const modal = document.getElementById("modal");
+    const modalClose = document.getElementById("modalClose");
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = false;
 
     const simCanvas = document.createElement("canvas");
     const simCtx = simCanvas.getContext("2d");
 
-    let NW, NH, grid, next, trail, age, imageData, cellRow, cellCol;
+    let NW, NH, grid, next, trail, age, tailV, imageData, cellRow, cellCol;
     let alive = 0;
     let frame = 0;
     let lastStepTime = 0;
+    let colorMode = 'original';
+
+    // NC State extended color palette (brand order)
+    const NCSU_STOPS = [
+      [0.600, 0.000, 0.000],   // Reynolds Red    #990000
+      [0.820, 0.286, 0.020],   // Pyroman Flame   #D14905
+      [0.980, 0.784, 0.000],   // Hunt Yellow     #FAC800
+      [0.435, 0.490, 0.110],   // Genomic Green   #6F7D1C
+      [0.000, 0.518, 0.451],   // Carmichael Aqua #008473
+      [0.259, 0.494, 0.576],   // Innovation Blue #427E93
+      [0.255, 0.337, 0.631],   // Bio-Indigo      #4156A1
+    ];
+    function ncsuLookup(tNorm) {
+      const n = NCSU_STOPS.length;
+      const pos = (((tNorm % 1) + 1) % 1) * n;
+      const lo = Math.floor(pos) % n, hi = (lo + 1) % n, frac = pos - Math.floor(pos);
+      return [
+        NCSU_STOPS[lo][0] + frac * (NCSU_STOPS[hi][0] - NCSU_STOPS[lo][0]),
+        NCSU_STOPS[lo][1] + frac * (NCSU_STOPS[hi][1] - NCSU_STOPS[lo][1]),
+        NCSU_STOPS[lo][2] + frac * (NCSU_STOPS[hi][2] - NCSU_STOPS[lo][2]),
+      ];
+    }
 
     function initGrid() {
       NW = Math.ceil(canvas.width  / CELL_PX);
@@ -53,8 +349,9 @@
       next    = new Uint8Array(sz);
       trail   = new Float32Array(sz);
       age     = new Float32Array(sz);
-      cellRow = new Float32Array(sz);
-      cellCol = new Float32Array(sz);
+      tailV   = new Float32Array(sz);
+      cellRow   = new Float32Array(sz);
+      cellCol   = new Float32Array(sz);
       for (let i = 0; i < sz; i++) {
         cellRow[i] = ((i / NW) | 0) / NH;
         cellCol[i] = (i % NW) / NW;
@@ -131,27 +428,126 @@
     function drawFrame(now) {
       const data = imageData.data;
       const T = now * BG_SPEED;
-      const phase = 0.055 * frame;
+      const phase = 0.10 * frame;
+
+
 
       for (let i = 0; i < grid.length; i++) {
         const cell = grid[i];
-        age[i]   = cell ? Math.min(age[i] + 1.0, 50.0) : age[i] * 0.90;
-        trail[i] = 0.94 * trail[i] + 1.15 * cell;
+        age[i]   = cell ? Math.min(age[i] + 1.0, 50.0) : age[i] * 0.84;
+        trail[i] = 0.93 * trail[i] + 1.35 * cell;
+        tailV[i] = cell ? trail[i] : tailV[i] * 0.975;
 
-        const row = cellRow[i];
-        const col = cellCol[i];
-        const wave =
-          Math.sin(5.5 * row + 3.1 * col + T * 1.3        ) * 0.4 +
-          Math.sin(3.7 * col - 2.9 * row + T * 0.9 + 1.1  ) * 0.3 +
-          Math.sin(7.1 * (row + col) * 0.5 + T * 1.7 + 2.4) * 0.3;
-        // wave ∈ [-1, 1] → bg ∈ [0.04, 0.20] → roughly 10–50/255, visible in dark room
-        const bg = 0.12 + 0.08 * wave;
-
-        const t = 0.72 * trail[i] + 0.35 * age[i];
+        const _r = (i / NW) | 0;
+        const _c = i % NW;
+        const blur = 0.025 * (
+          trail[idx(_r-1,_c)] + trail[idx(_r+1,_c)] +
+          trail[idx(_r,_c-1)] + trail[idx(_r,_c+1)]
+        );
+        const t = 0.72 * trail[i] + 0.35 * age[i] + blur;
         const glow = Math.max(0, Math.min(1, 0.2 + 0.8 * Math.tanh(0.9 * trail[i])));
-        const r = bg + glow * (0.5 + 0.5 * Math.sin(1.15 * t + phase + 0.0));
-        const g = bg + glow * (0.5 + 0.5 * Math.sin(1.05 * t + phase + 2.2));
-        const b = bg + glow * (0.5 + 0.5 * Math.sin(1.25 * t + phase + 4.4));
+
+        let r, g, b;
+        if (colorMode === 'grayscale') {
+          const bgGray = Math.abs(Math.sin(now * 0.0003));
+          const glowN = (glow - 0.2) / 0.8;
+          const v = bgGray * (1 - glowN) + (0.5 + 0.5 * Math.sin(1.15 * t + phase)) * glowN;
+          r = g = b = v;
+        } else if (colorMode === 'redscale') {
+          const rg = Math.max(0, (glow - 0.2) / 0.8);
+          const cycle = Math.pow(0.5 + 0.5 * Math.sin(1.15 * t + phase), 0.35);
+          r = 0.8 * (1 - rg) + (0.8 + 0.2 * cycle) * rg;
+          g = 0.0 * (1 - rg) + cycle * rg;
+          b = 0.0 * (1 - rg) + cycle * rg;
+        } else if (colorMode === 'ncstate') {
+          const ncBg = ncsuLookup((now * 0.00001) % 1.0);
+          const ncPos = 0.5 + 0.5 * Math.sin(0.18 * t + phase);
+          const nc = ncsuLookup(ncPos);
+          const glowN = (glow - 0.2) / 0.8;
+          r = ncBg[0] * (1 - glowN) + nc[0] * glowN;
+          g = ncBg[1] * (1 - glowN) + nc[1] * glowN;
+          b = ncBg[2] * (1 - glowN) + nc[2] * glowN;
+        } else if (colorMode === 'rainbow') {
+          const bgPhase = phase; // same rate as original (0.1 * frame)
+          const bgR = 0.5 + 0.5 * Math.sin(1.15 * bgPhase + 0.0);
+          const bgG = 0.5 + 0.5 * Math.sin(1.05 * bgPhase + 2.2);
+          const bgB = 0.5 + 0.5 * Math.sin(1.25 * bgPhase + 4.4);
+          const glowN = (glow - 0.2) / 0.8;
+          const cr = (0.5 + 0.5 * Math.sin(1.15 * t + phase + 0.0));
+          const cg = (0.5 + 0.5 * Math.sin(1.05 * t + phase + 2.2));
+          const cb = (0.5 + 0.5 * Math.sin(1.25 * t + phase + 4.4));
+          r = bgR * (1 - glowN) + cr * glowN;
+          g = bgG * (1 - glowN) + cg * glowN;
+          b = bgB * (1 - glowN) + cb * glowN;
+        } else if (colorMode === 'rainbow-slow') {
+          const bgPhase = now * 0.00001; // same rate as NC State background
+          const bgR = 0.5 + 0.5 * Math.sin(1.15 * bgPhase + 0.0);
+          const bgG = 0.5 + 0.5 * Math.sin(1.05 * bgPhase + 2.2);
+          const bgB = 0.5 + 0.5 * Math.sin(1.25 * bgPhase + 4.4);
+          const glowN = (glow - 0.2) / 0.8;
+          const cr = (0.5 + 0.5 * Math.sin(1.15 * t + phase + 0.0));
+          const cg = (0.5 + 0.5 * Math.sin(1.05 * t + phase + 2.2));
+          const cb = (0.5 + 0.5 * Math.sin(1.25 * t + phase + 4.4));
+          r = bgR * (1 - glowN) + cr * glowN;
+          g = bgG * (1 - glowN) + cg * glowN;
+          b = bgB * (1 - glowN) + cb * glowN;
+        } else if (colorMode === 'fire') {
+          const p2 = 0.10 * frame;
+          r = (0.85 + 0.15 * Math.sin(0.5 * t + p2))       * glow;
+          g = (0.40 + 0.40 * Math.sin(1.1 * t + p2 + 3.2)) * glow;
+          b = (0.05 + 0.05 * Math.sin(2.0 * t + p2 + 1.5)) * glow;
+        } else if (colorMode === 'ice') {
+          const p2 = 0.10 * frame;
+          r = (0.10 + 0.10 * Math.sin(2.0 * t + p2 + 1.5)) * glow;
+          g = (0.50 + 0.40 * Math.sin(1.1 * t + p2 + 3.2)) * glow;
+          b = (0.75 + 0.25 * Math.sin(0.5 * t + p2))        * glow;
+        } else if (colorMode === 'ember') {
+          const p2 = 0.05 * frame;
+          r = (0.60 + 0.40 * Math.sin(0.8 * t + p2))       * glow;
+          g = (0.15 + 0.25 * Math.sin(0.6 * t + p2 + 2.0)) * glow;
+          b = (0.02 + 0.04 * Math.sin(1.2 * t + p2 + 4.0)) * glow;
+        } else if (colorMode === 'aurora') {
+          const p2 = 0.07 * frame;
+          r = (0.10 + 0.50 * Math.sin(0.9 * t + p2 + 4.0)) * glow;
+          g = (0.50 + 0.50 * Math.sin(1.1 * t + p2 + 0.0)) * glow;
+          b = (0.30 + 0.40 * Math.sin(0.7 * t + p2 + 2.0)) * glow;
+        } else if (colorMode === 'sunset') {
+          const p2 = 0.08 * frame;
+          r = (0.50 + 0.50 * Math.sin(0.7 * t + p2 + 0.0)) * glow;
+          g = (0.20 + 0.40 * Math.sin(0.9 * t + p2 + 3.5)) * glow;
+          b = (0.30 + 0.30 * Math.sin(0.5 * t + p2 + 5.0)) * glow;
+        } else if (colorMode === 'ocean') {
+          const p2 = 0.06 * frame;
+          r = (0.00 + 0.20 * Math.sin(1.2 * t + p2 + 2.0)) * glow;
+          g = (0.30 + 0.40 * Math.sin(1.0 * t + p2 + 1.0)) * glow;
+          b = (0.50 + 0.50 * Math.sin(0.8 * t + p2 + 0.0)) * glow;
+        } else if (colorMode === 'diverging') {
+          const tn = Math.min(t / 31.5, 1.0);
+          r = tn                              * glow;
+          g = (1.0 - Math.abs(2 * tn - 1.0)) * glow;
+          b = (1.0 - tn)                      * glow;
+        } else if (colorMode === 'viridis') {
+          const tn = Math.min(t / 31.5, 1.0);
+          r = (0.25 + 0.65 * tn)                     * glow;
+          g = (0.00 + 0.85 * Math.sin(Math.PI * tn)) * glow;
+          b = (0.55 - 0.50 * tn)                      * glow;
+        } else if (colorMode === 'inferno') {
+          const tn = Math.min(t / 31.5, 1.0);
+          r = (tn < 0.5 ? 2*tn*0.8 : 0.8 + (tn-0.5)*0.4)                     * glow;
+          g = (tn < 0.3 ? 0.0 : (tn-0.3)/0.7 * 0.7)                          * glow;
+          b = Math.max(0, tn < 0.2 ? tn*2.0*0.5 : 0.5 - (tn-0.2)*2.0)        * glow;
+        } else {
+          // original
+          r = (0.5 + 0.5 * Math.sin(1.15 * t + phase + 0.0)) * glow;
+          g = (0.5 + 0.5 * Math.sin(1.05 * t + phase + 2.2)) * glow;
+          b = (0.5 + 0.5 * Math.sin(1.25 * t + phase + 4.4)) * glow;
+        }
+
+        // add dim slow-decaying tail on top of main color
+        const tailGlow = Math.max(0, Math.min(0.4, 0.4 * Math.tanh(0.15 * tailV[i])));
+        r = Math.min(1, r + tailGlow * r);
+        g = Math.min(1, g + tailGlow * g);
+        b = Math.min(1, b + tailGlow * b);
 
         const o = i * 4;
         data[o]     = Math.max(0, Math.min(255, (r * 255) | 0));
@@ -182,9 +578,44 @@
     }
 
     function resetAll() {
-      grid.fill(0); next.fill(0); trail.fill(0); age.fill(0);
+      grid.fill(0); next.fill(0); trail.fill(0); age.fill(0); tailV.fill(0);
       alive = 0;
     }
+
+    // Color menu toggle
+    const moreToggle = document.getElementById("moreToggle");
+    const morePanel  = document.getElementById("morePanel");
+
+    colorBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      colorMenu.style.display = colorMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    moreToggle.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = morePanel.style.display === 'block';
+      morePanel.style.display = open ? 'none' : 'block';
+      moreToggle.textContent = open ? 'More ▾' : 'More ▴';
+    });
+    colorMenu.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-mode]");
+      if (!btn) return;
+      colorMode = btn.dataset.mode;
+      colorMenu.querySelectorAll("button[data-mode]").forEach(b => b.classList.toggle("active", b === btn));
+      morePanel.style.display = 'none';
+      moreToggle.textContent = 'More ▾';
+      colorMenu.style.display = 'none';
+    });
+    document.addEventListener("click", () => {
+      colorMenu.style.display = 'none';
+      morePanel.style.display = 'none';
+      moreToggle.textContent = 'More ▾';
+    });
+
+    // How it works modal
+    howBtn.addEventListener("click", () => { modal.classList.add("open"); });
+    modalClose.addEventListener("click", () => { modal.classList.remove("open"); });
+    modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
 
     let isPointerDown = false;
 
