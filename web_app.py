@@ -2,9 +2,13 @@
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Cellular Art")
-_HTML = Path(__file__).parent / "index.html"
+_ROOT = Path(__file__).parent
+_HTML = _ROOT / "index.html"
+
+app.mount("/assets", StaticFiles(directory=_ROOT / "assets"), name="assets")
 
 
 @app.get("/", response_class=HTMLResponse)

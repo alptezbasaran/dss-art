@@ -23,6 +23,28 @@
     }
     button:hover { background: rgba(255,255,255,0.16); }
 
+    /* --- QR overlay (desktop only) --- */
+    #qrOverlay {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 30;
+      padding: 6px;
+      border-radius: 14px;
+      background: #e5e5e5;
+      border: 1px solid rgba(0,0,0,0.18);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    #qrOverlay img {
+      display: block;
+      width: 128px;
+      height: 128px;
+      background: #e5e5e5;
+    }
+    @media (max-width: 640px) {
+      #qrOverlay { display: none; }
+    }
+
     /* --- Color menu --- */
     #colorMenu {
       position: fixed; bottom: 128px; right: 20px; z-index: 20;
@@ -78,6 +100,9 @@
 </head>
 <body>
   <canvas id="stage" aria-label="Cellular art canvas"></canvas>
+  <div id="qrOverlay" aria-hidden="true">
+    <img src="assets/qr.svg" alt="" />
+  </div>
 
   <!-- Color palette menu -->
   <div id="colorMenu">
@@ -297,7 +322,7 @@
   </div>
 
   <script>
-    const CELL_PX = 6;
+    const CELL_PX = Math.max(4, Math.round(Math.min(window.innerWidth, window.innerHeight) / 120));
     const STEP_MS = 55;
     const BG_SPEED = 0.00018;  // ~28s per cycle, slow ambient drift
 
